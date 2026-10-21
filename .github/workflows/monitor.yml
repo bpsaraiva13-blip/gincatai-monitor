@@ -1,21 +1,22 @@
 name: Monitor Gincataí
 
+# Funcionamento contínuo, verificando a cada ~1 min:
+# - cada execução fica ~55 min em loop, checando o site a cada 60 s;
+# - o schedule (a cada 15 min) mantém SEMPRE uma próxima execução na fila
+#   (concurrency abaixo). Quando uma termina, a da fila começa na hora, sem buraco.
 on:
-  # Disparo externo a cada 1 min (cron-job.org -> API do GitHub). Ver README.
   workflow_dispatch:
     inputs:
       teste:
         description: "Enviar mensagem de teste no WhatsApp"
         type: boolean
         default: false
-  # Backup nativo do GitHub (mínimo 5 min; na prática pode atrasar)
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
 
-# Nunca roda duas verificações ao mesmo tempo (evita aviso duplicado)
 concurrency:
   group: monitor-gincatai
-  cancel-in-progress: false
+  cancel-in-progress: false   # mantém 1 execução rodando + 1 aguardando
 
 permissions:
   contents: write
@@ -23,7 +24,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 62
     steps:
       - uses: actions/checkout@v4
 
@@ -34,27 +35,36 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Verificar site
+      - name: Monitorar site (loop ~55 min)
         env:
           # Valores não sensíveis (sem o token não permitem enviar nada)
           GREEN_API_INSTANCE: "710722776555"
           GREEN_API_URL: "https://7107.api.greenapi.com"
           GREEN_API_CHATS: "120363429564768663@g.us"   # grupo BOT DE TAREFAS
-          # Único segredo: crie em Settings > Secrets and variables > Actions
+          # Único segredo: Settings > Secrets and variables > Actions
           GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
-          SEND_TEST: ${{ inputs.teste }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
-          CALLMEBOT_RECIPIENTS: ${{ secrets.CALLMEBOT_RECIPIENTS }}
-        run: python monitor.py
-
-      - name: Salvar estado
+          TESTE: ${{ inputs.teste }}
+          DURACAO: "3300"   # segundos de loop por execução (55 min)
+          INTERVALO: "60"   # segundos entre verificações
         run: |
           git config user.name "gincatai-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add state.json
-          if ! git diff --cached --quiet; then
-            git commit -m "estado: $(date -u +%FT%TZ)"
-            git pull --rebase -X theirs || true
-            git push
-          fi
+          inicio=$(date +%s)
+          primeira=1
+          while true; do
+            # mensagem de teste só na 1ª verificação de um disparo manual
+            if [ "$primeira" = 1 ]; then export SEND_TEST="$TESTE"; else export SEND_TEST=false; fi
+            primeira=0
+
+            python monitor.py || echo "verificação falhou, tentando de novo no próximo ciclo"
+
+            # salva o estado logo após cada mudança (não perde nada se o job cair)
+            git add state.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "estado: $(date -u +%FT%TZ)"
+              git push -q || { git pull -q --rebase -X theirs && git push -q; } || echo "push falhou"
+            fi
+
+            if [ $(( $(date +%s) - inicio )) -ge "$DURACAO" ]; then break; fi
+            sleep "$INTERVALO"
+          done

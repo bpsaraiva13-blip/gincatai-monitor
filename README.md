@@ -60,28 +60,16 @@ A Green API funciona conectando um WhatsApp por QR code (como o WhatsApp Web).
 4. **Actions** → *Monitor Gincataí* → **Run workflow** → marque **"Enviar mensagem de teste"** → Run.
    A mensagem 🔔 de teste deve chegar no grupo.
 
-Só com isso já funciona pelo `schedule` nativo (a cada ~5 min, mas o GitHub costuma atrasar 5–15 min).
+## Como roda (a cada ~1 minuto, sem serviço externo)
 
-## 3. Disparo a cada 1 minuto (cron-job.org)
+Cada execução do workflow fica ~55 min em loop, verificando o site a cada 60 s.
+O `schedule` (a cada 15 min) mantém sempre uma próxima execução **na fila** graças ao
+`concurrency`: quando uma termina, a seguinte começa imediatamente.
+O aviso chega em ~1 min após a publicação.
 
-1. GitHub → **Settings (da conta) → Developer settings → Fine-grained tokens → Generate new token**
-   - Repository access: só este repositório
-   - Permissions → **Actions: Read and write**
-2. Crie conta grátis em <https://cron-job.org> → **Create cronjob**
-   - URL: `https://api.github.com/repos/SEU_USUARIO/SEU_REPO/actions/workflows/monitor.yml/dispatches`
-   - Schedule: **every 1 minute**
-   - Aba *Advanced*:
-     - Request method: **POST**
-     - Headers:
-       ```
-       Authorization: Bearer SEU_TOKEN
-       Accept: application/vnd.github+json
-       Content-Type: application/json
-       ```
-     - Request body: `{"ref":"main"}`
-3. Salve. Resposta esperada: **204**.
+Ajustes no `.github/workflows/monitor.yml`: `INTERVALO` (segundos entre verificações) e `DURACAO`.
 
-Cada execução leva ~20–40 s (subir a máquina + checar), então o aviso chega em ~1–2 min após a publicação.
+Para desligar depois da gincana: **Actions → Monitor Gincataí → ⋯ → Disable workflow**.
 
 ## Rodar localmente / numa VM (opcional)
 
