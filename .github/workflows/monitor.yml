@@ -3,6 +3,11 @@ name: Monitor Gincataí
 on:
   # Disparo externo a cada 1 min (cron-job.org -> API do GitHub). Ver README.
   workflow_dispatch:
+    inputs:
+      teste:
+        description: "Enviar mensagem de teste no WhatsApp"
+        type: boolean
+        default: false
   # Backup nativo do GitHub (mínimo 5 min; na prática pode atrasar)
   schedule:
     - cron: "*/5 * * * *"
@@ -31,10 +36,13 @@ jobs:
 
       - name: Verificar site
         env:
-          GREEN_API_INSTANCE: ${{ secrets.GREEN_API_INSTANCE }}
+          # Valores não sensíveis (sem o token não permitem enviar nada)
+          GREEN_API_INSTANCE: "710722776555"
+          GREEN_API_URL: "https://7107.api.greenapi.com"
+          GREEN_API_CHATS: "120363429564768663@g.us"   # grupo BOT DE TAREFAS
+          # Único segredo: crie em Settings > Secrets and variables > Actions
           GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
-          GREEN_API_CHATS: ${{ secrets.GREEN_API_CHATS }}
-          GREEN_API_URL: ${{ secrets.GREEN_API_URL }}
+          SEND_TEST: ${{ inputs.teste }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
           CALLMEBOT_RECIPIENTS: ${{ secrets.CALLMEBOT_RECIPIENTS }}

@@ -53,19 +53,12 @@ A Green API funciona conectando um WhatsApp por QR code (como o WhatsApp Web).
    requirements.txt
    .github/workflows/monitor.yml
    ```
-3. **Settings → Secrets and variables → Actions → New repository secret**, crie os secrets do canal escolhido:
-
-   | Secret | Exemplo |
-   |---|---|
-   | `GREEN_API_INSTANCE` | `7105123456` |
-   | `GREEN_API_TOKEN` | `d75b3a66374942c5b3c019c698abc2067e151558acbd412345` |
-   | `GREEN_API_URL` | `https://7105.api.greenapi.com` |
-   | `GREEN_API_CHATS` | `5551999999999,120363012345678901@g.us` |
-   | `TELEGRAM_BOT_TOKEN` | `123456:ABC-DEF...` |
-   | `TELEGRAM_CHAT_IDS` | `123456789` |
-
-4. **Actions** → habilite os workflows → abra *Monitor Gincataí* → **Run workflow**.
-   Na primeira execução ele registra o que já existe e manda "✅ Monitor ativo".
+3. Instância, URL e grupo já estão no `.github/workflows/monitor.yml`. Falta só o token:
+   **Settings → Secrets and variables → Actions → New repository secret**
+   - Nome: `GREEN_API_TOKEN`
+   - Valor: o `apiTokenInstance` do console da Green API
+4. **Actions** → *Monitor Gincataí* → **Run workflow** → marque **"Enviar mensagem de teste"** → Run.
+   A mensagem 🔔 de teste deve chegar no grupo.
 
 Só com isso já funciona pelo `schedule` nativo (a cada ~5 min, mas o GitHub costuma atrasar 5–15 min).
 

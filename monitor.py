@@ -271,8 +271,14 @@ def run_once() -> None:
         except Exception as e:  # um check com erro não derruba os outros
             log(f"Falha em {check.__name__}: {e}")
 
-    state["last_check"] = datetime.now(timezone.utc).isoformat()
+    state.pop("last_check", None)  # não gravar timestamp: evita um commit por execução
     save_state(state)
+
+    if os.getenv("SEND_TEST") == "true":
+        notify(
+            "🔔 Teste do monitor da XV Gincataí: se você está lendo isto, os avisos estão funcionando.\n"
+            f"{len(state.get('posts', []))} post(s) monitorado(s)."
+        )
 
     if first_run and "posts" in state:
         log("Primeira execução: estado inicial salvo.")
